@@ -4,11 +4,6 @@
   "buildCommand": "pnpm run build:vercel",
   "installCommand": "pnpm install --frozen-lockfile",
   "outputDirectory": "artifacts/aza/dist/public",
-  "functions": {
-    "api/index.mjs": {
-      "maxDuration": 10
-    }
-  },
   "rewrites": [
     {
       "source": "/(.*)",
