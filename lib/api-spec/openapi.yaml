@@ -1,0 +1,171 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: opportunities
+    description: Opportunity intelligence operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /opportunities/analyze:
+    post:
+      operationId: analyzeOpportunities
+      tags: [opportunities]
+      summary: Analyze opportunities for a profile
+      description: Deterministically scores demo opportunities against a user's profile and explains eligibility.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileInput"
+      responses:
+        "200":
+          description: Personalized opportunity analysis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalysisResult"
+        "400":
+          description: Invalid profile
+  /opportunities/{id}:
+    get:
+      operationId: getOpportunity
+      tags: [opportunities]
+      summary: Get an opportunity with eligibility reasoning
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Opportunity detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpportunityMatch"
+        "404":
+          description: Opportunity not found
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    ProfileInput:
+      type: object
+      required:
+        - age
+        - country
+        - region
+        - status
+        - education
+        - interests
+        - skills
+        - goals
+        - budget
+        - internationalTravel
+        - localTravel
+        - preferredTypes
+      properties:
+        age: { type: number, minimum: 13, maximum: 100 }
+        country: { type: string, minLength: 2 }
+        region: { type: string, minLength: 2 }
+        status:
+          type: string
+          enum: [student, professional, graduate, founder, unemployed]
+        education:
+          type: string
+          enum: [secondary, undergraduate, graduate, postgraduate]
+        interests:
+          type: array
+          items: { type: string }
+          minItems: 1
+        skills:
+          type: array
+          items: { type: string }
+        goals: { type: string }
+        budget: { type: number, minimum: 0 }
+        internationalTravel: { type: boolean }
+        localTravel: { type: boolean }
+        preferredTypes:
+          type: array
+          items: { type: string }
+          minItems: 1
+    Opportunity:
+      type: object
+      required: [id, title, organization, description, category, tags, eligibleCountries, minAge, maxAge, educationRequirements, studentRequirement, skills, travelRequirement, onlineAvailability, funding, applicationCost, deadline, requiredDocuments, applicationUrl, status, source, verificationDate, demoData]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        organization: { type: string }
+        description: { type: string }
+        category: { type: string }
+        tags: { type: array, items: { type: string } }
+        eligibleCountries: { type: array, items: { type: string } }
+        minAge: { type: number }
+        maxAge: { type: number }
+        educationRequirements: { type: array, items: { type: string } }
+        studentRequirement: { type: string }
+        skills: { type: array, items: { type: string } }
+        travelRequirement: { type: string, enum: [none, local, international] }
+        onlineAvailability: { type: boolean }
+        funding: { type: string }
+        applicationCost: { type: number }
+        deadline: { type: string, format: date }
+        requiredDocuments: { type: array, items: { type: string } }
+        applicationUrl: { type: string }
+        status: { type: string, enum: [open, closing-soon] }
+        source: { type: string }
+        verificationDate: { type: string, format: date }
+        demoData: { type: boolean }
+    OpportunityMatch:
+      allOf:
+        - $ref: "#/components/schemas/Opportunity"
+        - type: object
+          required: [score, eligibility, eligibleReasons, concernReasons, missingRequirements, nextActions, daysRemaining]
+          properties:
+            score: { type: number, minimum: 0, maximum: 100 }
+            eligibility: { type: string, enum: [eligible, potential, ineligible] }
+            eligibleReasons: { type: array, items: { type: string } }
+            concernReasons: { type: array, items: { type: string } }
+            missingRequirements: { type: array, items: { type: string } }
+            nextActions: { type: array, items: { type: string } }
+            daysRemaining: { type: number }
+    AnalysisResult:
+      type: object
+      required: [total, eligibleCount, potentialCount, ineligibleCount, matches]
+      properties:
+        total: { type: number }
+        eligibleCount: { type: number }
+        potentialCount: { type: number }
+        ineligibleCount: { type: number }
+        matches:
+          type: array
+          items:
+            $ref: "#/components/schemas/OpportunityMatch"
+

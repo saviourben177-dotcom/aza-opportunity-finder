@@ -1,0 +1,1 @@
+- [OpenAPI integer compatibility](openapi-integer-compatibility.md) — this workspace’s generated Zod layer is Zod 3, so OpenAPI integer fields need numeric schemas to avoid z.int() output.

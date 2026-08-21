@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Aza"
+description = "A personalized opportunity intelligence platform that analyzes a person's profile against structured demo opportunities and explains which scholarships, hackathons, programs, internships, and competitions they can realistically pursue."
+version = "1.0.0"
+id = "artifacts/aza"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25973
+
+[services.development]
+run = "pnpm --filter @workspace/aza run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/aza", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/aza/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25973"
+BASE_PATH = "/"
