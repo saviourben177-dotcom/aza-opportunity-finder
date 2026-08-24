@@ -7,6 +7,10 @@
  */
 
 export * from './analysisResult';
+export * from './deviceIdentifier';
+export * from './deviceIdQueryParameter';
+export * from './getSavedOpportunities200';
+export * from './getSavedOpportunitiesParams';
 export * from './healthStatus';
 export * from './opportunity';
 export * from './opportunityMatch';
@@ -16,3 +20,4 @@ export * from './opportunityTravelRequirement';
 export * from './profileInput';
 export * from './profileInputEducation';
 export * from './profileInputStatus';
+export * from './saveOpportunityRequest';

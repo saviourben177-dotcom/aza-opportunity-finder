@@ -67,7 +67,73 @@ paths:
                 $ref: "#/components/schemas/OpportunityMatch"
         "404":
           description: Opportunity not found
+  /saved:
+    get:
+      operationId: getSavedOpportunities
+      tags: [opportunities]
+      summary: List saved opportunities for a device
+      parameters:
+        - $ref: "#/components/parameters/DeviceIdQuery"
+      responses:
+        "200":
+          description: Saved opportunities
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [opportunities]
+                properties:
+                  opportunities:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Opportunity"
+        "400":
+          description: Missing deviceId
+    post:
+      operationId: saveOpportunity
+      tags: [opportunities]
+      summary: Save an opportunity for a device
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaveOpportunityRequest"
+      responses:
+        "200":
+          description: Saved
+        "404":
+          description: Opportunity not found
+  /saved/{opportunityId}:
+    delete:
+      operationId: unsaveOpportunity
+      tags: [opportunities]
+      summary: Remove a saved opportunity for a device
+      parameters:
+        - $ref: "#/components/parameters/OpportunityIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceIdentifier"
+      responses:
+        "200":
+          description: Removed
 components:
+  parameters:
+    DeviceIdQuery:
+      name: deviceId
+      in: query
+      required: true
+      schema:
+        type: string
+    OpportunityIdPath:
+      name: opportunityId
+      in: path
+      required: true
+      schema:
+        type: string
   schemas:
     HealthStatus:
       type: object
@@ -156,6 +222,17 @@ components:
             missingRequirements: { type: array, items: { type: string } }
             nextActions: { type: array, items: { type: string } }
             daysRemaining: { type: number }
+    DeviceIdentifier:
+      type: object
+      required: [deviceId]
+      properties:
+        deviceId: { type: string }
+    SaveOpportunityRequest:
+      type: object
+      required: [deviceId, opportunityId]
+      properties:
+        deviceId: { type: string }
+        opportunityId: { type: string }
     AnalysisResult:
       type: object
       required: [total, eligibleCount, potentialCount, ineligibleCount, matches]

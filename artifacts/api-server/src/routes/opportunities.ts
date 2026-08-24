@@ -1,8 +1,14 @@
 import { Router, type IRouter } from "express";
+import { eq, and } from "drizzle-orm";
+import { db, opportunitiesTable, savedOpportunitiesTable } from "@workspace/db";
 import {
   AnalyzeOpportunitiesBody,
   AnalyzeOpportunitiesResponse,
   GetOpportunityParams,
+  GetSavedOpportunitiesQueryParams,
+  SaveOpportunityBody,
+  UnsaveOpportunityParams,
+  UnsaveOpportunityBody,
 } from "@workspace/api-zod";
 
 type Profile = ReturnType<typeof AnalyzeOpportunitiesBody.parse>;
@@ -42,216 +48,61 @@ type OpportunityMatch = Opportunity & {
   daysRemaining: number;
 };
 
-const opportunities: Opportunity[] = [
-  {
-    id: "lagos-build-weekend",
-    title: "Lagos Build Weekend",
-    organization: "Aza Demo Collective",
-    description:
-      "A 48-hour online-first build sprint for young makers turning a local problem into a working prototype.",
-    category: "Hackathon",
-    tags: ["software engineering", "product", "community"],
-    eligibleCountries: ["NG"],
-    minAge: 15,
-    maxAge: 26,
-    educationRequirements: ["secondary", "undergraduate"],
-    studentRequirement: "student",
-    skills: ["software engineering", "javascript", "product design"],
-    travelRequirement: "none",
-    onlineAvailability: true,
-    funding: "₦300,000 prototype grants + mentorship",
-    applicationCost: 0,
-    deadline: "2026-09-06",
-    requiredDocuments: ["Short idea statement", "Portfolio or GitHub link"],
-    applicationUrl: "/demo-applications/lagos-build-weekend",
-    status: "open",
-    source: "Aza Demo Collective",
-    verificationDate: "2026-08-18",
-    demoData: true,
-  },
-  {
-    id: "open-source-scholars",
-    title: "Open Source Scholars",
-    organization: "Aza Demo Foundation",
-    description:
-      "A guided 10-week program pairing students with open-source maintainers to ship their first meaningful contribution.",
-    category: "Fellowship",
-    tags: ["software engineering", "open source", "career"],
-    eligibleCountries: ["NG", "GH", "KE", "ZA"],
-    minAge: 16,
-    maxAge: 30,
-    educationRequirements: ["secondary", "undergraduate", "graduate"],
-    studentRequirement: "student",
-    skills: ["software engineering", "github", "technical writing"],
-    travelRequirement: "none",
-    onlineAvailability: true,
-    funding: "Fully funded stipend of $500",
-    applicationCost: 0,
-    deadline: "2026-09-12",
-    requiredDocuments: ["CV", "Why open source essay", "One code sample"],
-    applicationUrl: "/demo-applications/open-source-scholars",
-    status: "open",
-    source: "Aza Demo Foundation",
-    verificationDate: "2026-08-15",
-    demoData: true,
-  },
-  {
-    id: "africa-creative-grant",
-    title: "Africa Creative Technology Grant",
-    organization: "Aza Demo Arts Lab",
-    description:
-      "Small grants for African creators building tools where culture, design, and technology meet.",
-    category: "Grant",
-    tags: ["design", "technology", "creative"],
-    eligibleCountries: ["NG", "GH", "KE", "ZA", "RW"],
-    minAge: 18,
-    maxAge: 40,
-    educationRequirements: ["secondary", "undergraduate", "graduate", "postgraduate"],
-    studentRequirement: "any",
-    skills: ["design", "research", "product design"],
-    travelRequirement: "none",
-    onlineAvailability: true,
-    funding: "$2,500 project grant",
-    applicationCost: 0,
-    deadline: "2026-09-28",
-    requiredDocuments: ["Project proposal", "Budget", "Work samples"],
-    applicationUrl: "/demo-applications/creative-grant",
-    status: "open",
-    source: "Aza Demo Arts Lab",
-    verificationDate: "2026-08-17",
-    demoData: true,
-  },
-  {
-    id: "global-youth-cup",
-    title: "Global Youth Innovation Cup",
-    organization: "Aza Demo Ventures",
-    description:
-      "A global competition for youth-led solutions, with a final showcase hosted in Amsterdam.",
-    category: "Competition",
-    tags: ["innovation", "pitching", "social impact"],
-    eligibleCountries: ["NG", "GH", "KE", "ZA", "RW", "US", "GB"],
-    minAge: 18,
-    maxAge: 25,
-    educationRequirements: ["secondary", "undergraduate"],
-    studentRequirement: "student",
-    skills: ["product", "pitching", "research"],
-    travelRequirement: "international",
-    onlineAvailability: false,
-    funding: "€10,000 prize + finalist travel support",
-    applicationCost: 0,
-    deadline: "2026-09-19",
-    requiredDocuments: ["Team profile", "90-second pitch video", "Prototype link"],
-    applicationUrl: "/demo-applications/global-youth-cup",
-    status: "open",
-    source: "Aza Demo Ventures",
-    verificationDate: "2026-08-16",
-    demoData: true,
-  },
-  {
-    id: "remote-data-internship",
-    title: "Remote Data Product Internship",
-    organization: "Aza Demo Labs",
-    description:
-      "A paid, remote internship for emerging builders interested in using data to improve everyday products.",
-    category: "Internship",
-    tags: ["data", "software engineering", "product"],
-    eligibleCountries: ["NG", "GH", "KE", "ZA"],
-    minAge: 18,
-    maxAge: 32,
-    educationRequirements: ["undergraduate", "graduate", "postgraduate"],
-    studentRequirement: "any",
-    skills: ["data analysis", "python", "software engineering"],
-    travelRequirement: "none",
-    onlineAvailability: true,
-    funding: "Paid, 12-week remote placement",
-    applicationCost: 0,
-    deadline: "2026-08-31",
-    requiredDocuments: ["CV", "Transcript or equivalent", "Portfolio"],
-    applicationUrl: "/demo-applications/remote-data-internship",
-    status: "closing-soon",
-    source: "Aza Demo Labs",
-    verificationDate: "2026-08-18",
-    demoData: true,
-  },
-  {
-    id: "maker-microgrant",
-    title: "Maker Microgrant",
-    organization: "Aza Demo Community Fund",
-    description:
-      "A lightweight microgrant for early prototypes that can be tested in a local community within 30 days.",
-    category: "Grant",
-    tags: ["making", "community", "software engineering"],
-    eligibleCountries: ["NG"],
-    minAge: 13,
-    maxAge: 35,
-    educationRequirements: ["secondary", "undergraduate", "graduate"],
-    studentRequirement: "any",
-    skills: ["software engineering", "making", "community"],
-    travelRequirement: "local",
-    onlineAvailability: true,
-    funding: "₦150,000 microgrant",
-    applicationCost: 0,
-    deadline: "2026-09-02",
-    requiredDocuments: ["One-page project plan", "Community partner confirmation"],
-    applicationUrl: "/demo-applications/maker-microgrant",
-    status: "open",
-    source: "Aza Demo Community Fund",
-    verificationDate: "2026-08-14",
-    demoData: true,
-  },
-  {
-    id: "women-in-ai-lab",
-    title: "Women in AI Lab Residency",
-    organization: "Aza Demo Research Network",
-    description:
-      "A research residency for women exploring responsible AI, with a funded in-person lab week in Berlin.",
-    category: "Program",
-    tags: ["artificial intelligence", "research", "software engineering"],
-    eligibleCountries: ["NG", "GH", "KE", "ZA", "RW"],
-    minAge: 21,
-    maxAge: 45,
-    educationRequirements: ["graduate", "postgraduate"],
-    studentRequirement: "any",
-    skills: ["artificial intelligence", "research", "python"],
-    travelRequirement: "international",
-    onlineAvailability: true,
-    funding: "€4,000 stipend + travel support",
-    applicationCost: 0,
-    deadline: "2026-10-05",
-    requiredDocuments: ["Research proposal", "CV", "Two references"],
-    applicationUrl: "/demo-applications/women-in-ai-lab",
-    status: "open",
-    source: "Aza Demo Research Network",
-    verificationDate: "2026-08-12",
-    demoData: true,
-  },
-  {
-    id: "junior-design-challenge",
-    title: "Junior Product Design Challenge",
-    organization: "Aza Demo Studio",
-    description:
-      "A two-week design challenge for students to rethink a familiar everyday experience and present their thinking.",
-    category: "Competition",
-    tags: ["design", "product design", "research"],
-    eligibleCountries: ["NG", "GH", "KE", "ZA", "RW", "US", "GB"],
-    minAge: 13,
-    maxAge: 22,
-    educationRequirements: ["secondary", "undergraduate"],
-    studentRequirement: "student",
-    skills: ["design", "product design", "research"],
-    travelRequirement: "none",
-    onlineAvailability: true,
-    funding: "Mentorship + design tool credits",
-    applicationCost: 0,
-    deadline: "2026-09-09",
-    requiredDocuments: ["One case study or sketchbook", "Short motivation note"],
-    applicationUrl: "/demo-applications/junior-design-challenge",
-    status: "open",
-    source: "Aza Demo Studio",
-    verificationDate: "2026-08-18",
-    demoData: true,
-  },
-];
+// Real opportunity data lives in Postgres (public.opportunities), not a
+// hardcoded array. Rows are mapped into the exact `Opportunity` shape the
+// rest of this file (and the API contract) expects. Dates come back from
+// the pg driver as `Date` objects for `date` columns; they're normalised to
+// `YYYY-MM-DD` strings here since `daysUntil`, the response schema, and the
+// frontend all expect ISO date strings, not Date instances.
+function toIsoDate(value: string | Date): string {
+  if (value instanceof Date) {
+    return value.toISOString().slice(0, 10);
+  }
+  return value;
+}
+
+function rowToOpportunity(row: typeof opportunitiesTable.$inferSelect): Opportunity {
+  return {
+    id: row.id,
+    title: row.title,
+    organization: row.organization,
+    description: row.description,
+    category: row.category,
+    tags: row.tags,
+    eligibleCountries: row.eligibleCountries,
+    minAge: row.minAge,
+    maxAge: row.maxAge,
+    educationRequirements: row.educationRequirements,
+    studentRequirement: row.studentRequirement,
+    skills: row.skills,
+    travelRequirement: row.travelRequirement as Opportunity["travelRequirement"],
+    onlineAvailability: row.onlineAvailability,
+    funding: row.funding,
+    applicationCost: row.applicationCost,
+    deadline: toIsoDate(row.deadline),
+    requiredDocuments: row.requiredDocuments,
+    applicationUrl: row.applicationUrl,
+    status: row.status as Opportunity["status"],
+    source: row.source,
+    verificationDate: toIsoDate(row.verificationDate),
+    demoData: row.demoData,
+  };
+}
+
+async function getAllOpportunities(): Promise<Opportunity[]> {
+  const rows = await db.select().from(opportunitiesTable);
+  return rows.map(rowToOpportunity);
+}
+
+async function getOpportunityById(id: string): Promise<Opportunity | undefined> {
+  const rows = await db
+    .select()
+    .from(opportunitiesTable)
+    .where(eq(opportunitiesTable.id, id))
+    .limit(1);
+  return rows[0] ? rowToOpportunity(rows[0]) : undefined;
+}
+
 
 const normalise = (value: string) => value.trim().toLowerCase();
 // Deliberately not clamped to 0: the frontend relies on a negative value to
@@ -447,14 +298,15 @@ function analyze(opportunity: Opportunity, profile: Profile): OpportunityMatch {
 
 const router: IRouter = Router();
 
-router.post("/opportunities/analyze", (req, res) => {
+router.post("/opportunities/analyze", async (req, res) => {
   const parsed = AnalyzeOpportunitiesBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Please complete the profile with valid values." });
     return;
   }
 
-  const matches = opportunities
+  const allOpportunities = await getAllOpportunities();
+  const matches = allOpportunities
     .map((opportunity) => analyze(opportunity, parsed.data))
     .sort((a, b) => b.score - a.score || a.daysRemaining - b.daysRemaining);
   const result = {
@@ -470,9 +322,9 @@ router.post("/opportunities/analyze", (req, res) => {
   res.json(validated);
 });
 
-router.get("/opportunities/:id", (req, res) => {
+router.get("/opportunities/:id", async (req, res) => {
   const parsed = GetOpportunityParams.safeParse(req.params);
-  const opportunity = parsed.success ? opportunities.find((item) => item.id === parsed.data.id) : undefined;
+  const opportunity = parsed.success ? await getOpportunityById(parsed.data.id) : undefined;
   if (!opportunity) {
     res.status(404).json({ error: "Opportunity not found." });
     return;
@@ -493,6 +345,70 @@ router.get("/opportunities/:id", (req, res) => {
     preferredTypes: ["hackathon"],
   };
   res.json(analyze(opportunity, demoProfile));
+});
+
+// "Saved" is scoped by an anonymous device ID (a UUID generated and stored
+// client-side), not a signed-in account — the app has no auth yet. This is
+// real persistence, not a stub: it survives reloads and syncs across the
+// same device, it just doesn't follow a person across devices until real
+// accounts exist.
+router.get("/saved", async (req, res) => {
+  const parsed = GetSavedOpportunitiesQueryParams.safeParse(req.query);
+  if (!parsed.success) {
+    res.status(400).json({ error: "deviceId is required." });
+    return;
+  }
+
+  const rows = await db
+    .select({ opportunity: opportunitiesTable })
+    .from(savedOpportunitiesTable)
+    .innerJoin(opportunitiesTable, eq(savedOpportunitiesTable.opportunityId, opportunitiesTable.id))
+    .where(eq(savedOpportunitiesTable.deviceId, parsed.data.deviceId));
+
+  res.json({ opportunities: rows.map((row) => rowToOpportunity(row.opportunity)) });
+});
+
+router.post("/saved", async (req, res) => {
+  const parsed = SaveOpportunityBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "deviceId and opportunityId are required." });
+    return;
+  }
+
+  const opportunity = await getOpportunityById(parsed.data.opportunityId);
+  if (!opportunity) {
+    res.status(404).json({ error: "Opportunity not found." });
+    return;
+  }
+
+  await db
+    .insert(savedOpportunitiesTable)
+    .values({ deviceId: parsed.data.deviceId, opportunityId: parsed.data.opportunityId })
+    .onConflictDoNothing({
+      target: [savedOpportunitiesTable.deviceId, savedOpportunitiesTable.opportunityId],
+    });
+
+  res.json({ saved: true });
+});
+
+router.delete("/saved/:opportunityId", async (req, res) => {
+  const paramsParsed = UnsaveOpportunityParams.safeParse(req.params);
+  const bodyParsed = UnsaveOpportunityBody.safeParse(req.body);
+  if (!paramsParsed.success || !bodyParsed.success) {
+    res.status(400).json({ error: "deviceId and opportunityId are required." });
+    return;
+  }
+
+  await db
+    .delete(savedOpportunitiesTable)
+    .where(
+      and(
+        eq(savedOpportunitiesTable.deviceId, bodyParsed.data.deviceId),
+        eq(savedOpportunitiesTable.opportunityId, paramsParsed.data.opportunityId),
+      ),
+    );
+
+  res.json({ removed: true });
 });
 
 export default router;

@@ -21,9 +21,13 @@ import type {
 
 import type {
   AnalysisResult,
+  DeviceIdentifier,
+  GetSavedOpportunities200,
+  GetSavedOpportunitiesParams,
   HealthStatus,
   OpportunityMatch,
-  ProfileInput
+  ProfileInput,
+  SaveOpportunityRequest
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -279,4 +283,231 @@ export function useGetOpportunity<TData = Awaited<ReturnType<typeof getOpportuni
 
 
 
+
+export const getGetSavedOpportunitiesUrl = (params: GetSavedOpportunitiesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/saved?${stringifiedParams}` : `/api/saved`
+}
+
+/**
+ * @summary List saved opportunities for a device
+ */
+export const getSavedOpportunities = async (params: GetSavedOpportunitiesParams, options?: Parameters<typeof customFetch>[1]): Promise<GetSavedOpportunities200> => {
+
+  return customFetch<GetSavedOpportunities200>(getGetSavedOpportunitiesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSavedOpportunitiesQueryKey = (params?: GetSavedOpportunitiesParams,) => {
+    return [
+    `/api/saved`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetSavedOpportunitiesQueryOptions = <TData = Awaited<ReturnType<typeof getSavedOpportunities>>, TError = ErrorType<void>>(params: GetSavedOpportunitiesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSavedOpportunities>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSavedOpportunitiesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSavedOpportunities>>> = ({ signal }) => getSavedOpportunities(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSavedOpportunities>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSavedOpportunitiesQueryResult = NonNullable<Awaited<ReturnType<typeof getSavedOpportunities>>>
+export type GetSavedOpportunitiesQueryError = ErrorType<void>
+
+
+/**
+ * @summary List saved opportunities for a device
+ */
+
+export function useGetSavedOpportunities<TData = Awaited<ReturnType<typeof getSavedOpportunities>>, TError = ErrorType<void>>(
+ params: GetSavedOpportunitiesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSavedOpportunities>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSavedOpportunitiesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSaveOpportunityUrl = () => {
+
+
+
+
+  return `/api/saved`
+}
+
+/**
+ * @summary Save an opportunity for a device
+ */
+export const saveOpportunity = async (saveOpportunityRequest: SaveOpportunityRequest, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getSaveOpportunityUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(saveOpportunityRequest)
+  }
+);}
+
+
+
+
+
+export const getSaveOpportunityMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveOpportunity>>, TError,{data: BodyType<SaveOpportunityRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof saveOpportunity>>, TError,{data: BodyType<SaveOpportunityRequest>}, TContext> => {
+
+const mutationKey = ['saveOpportunity'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof saveOpportunity>>, {data: BodyType<SaveOpportunityRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  saveOpportunity(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SaveOpportunityMutationResult = NonNullable<Awaited<ReturnType<typeof saveOpportunity>>>
+    export type SaveOpportunityMutationBody = BodyType<SaveOpportunityRequest>
+    export type SaveOpportunityMutationError = ErrorType<void>
+
+    /**
+ * @summary Save an opportunity for a device
+ */
+export const useSaveOpportunity = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveOpportunity>>, TError,{data: BodyType<SaveOpportunityRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof saveOpportunity>>,
+        TError,
+        {data: BodyType<SaveOpportunityRequest>},
+        TContext
+      > => {
+      return useMutation(getSaveOpportunityMutationOptions(options));
+    }
+
+export const getUnsaveOpportunityUrl = (opportunityId: string,) => {
+
+
+
+
+  return `/api/saved/${opportunityId}`
+}
+
+/**
+ * @summary Remove a saved opportunity for a device
+ */
+export const unsaveOpportunity = async (opportunityId: string,
+    deviceIdentifier: DeviceIdentifier, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getUnsaveOpportunityUrl(opportunityId),
+  {
+    ...options,
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(deviceIdentifier)
+  }
+);}
+
+
+
+
+
+export const getUnsaveOpportunityMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unsaveOpportunity>>, TError,{opportunityId: string;data: BodyType<DeviceIdentifier>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unsaveOpportunity>>, TError,{opportunityId: string;data: BodyType<DeviceIdentifier>}, TContext> => {
+
+const mutationKey = ['unsaveOpportunity'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unsaveOpportunity>>, {opportunityId: string;data: BodyType<DeviceIdentifier>}> = (props) => {
+          const {opportunityId,data} = props ?? {};
+
+          return  unsaveOpportunity(opportunityId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnsaveOpportunityMutationResult = NonNullable<Awaited<ReturnType<typeof unsaveOpportunity>>>
+    export type UnsaveOpportunityMutationBody = BodyType<DeviceIdentifier>
+    export type UnsaveOpportunityMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Remove a saved opportunity for a device
+ */
+export const useUnsaveOpportunity = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unsaveOpportunity>>, TError,{opportunityId: string;data: BodyType<DeviceIdentifier>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof unsaveOpportunity>>,
+        TError,
+        {opportunityId: string;data: BodyType<DeviceIdentifier>},
+        TContext
+      > => {
+      return useMutation(getUnsaveOpportunityMutationOptions(options));
+    }
 

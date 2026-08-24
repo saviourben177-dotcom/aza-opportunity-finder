@@ -142,3 +142,64 @@ export const GetOpportunityResponse = zod.object({
 }))
 
 
+/**
+ * @summary List saved opportunities for a device
+ */
+export const GetSavedOpportunitiesQueryParams = zod.object({
+  "deviceId": zod.coerce.string()
+})
+
+export const GetSavedOpportunitiesResponse = zod.object({
+  "opportunities": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "organization": zod.string(),
+  "description": zod.string(),
+  "category": zod.string(),
+  "tags": zod.array(zod.string()),
+  "eligibleCountries": zod.array(zod.string()),
+  "minAge": zod.number(),
+  "maxAge": zod.number(),
+  "educationRequirements": zod.array(zod.string()),
+  "studentRequirement": zod.string(),
+  "skills": zod.array(zod.string()),
+  "travelRequirement": zod.enum(['none', 'local', 'international']),
+  "onlineAvailability": zod.boolean(),
+  "funding": zod.string(),
+  "applicationCost": zod.number(),
+  "deadline": zod.coerce.date(),
+  "requiredDocuments": zod.array(zod.string()),
+  "applicationUrl": zod.string(),
+  "status": zod.enum(['open', 'closing-soon']),
+  "source": zod.string(),
+  "verificationDate": zod.coerce.date(),
+  "demoData": zod.boolean()
+}))
+})
+
+
+/**
+ * @summary Save an opportunity for a device
+ */
+export const SaveOpportunityBody = zod.object({
+  "deviceId": zod.string(),
+  "opportunityId": zod.string()
+})
+
+export const SaveOpportunityResponse = zod.unknown()
+
+
+/**
+ * @summary Remove a saved opportunity for a device
+ */
+export const UnsaveOpportunityParams = zod.object({
+  "opportunityId": zod.coerce.string()
+})
+
+export const UnsaveOpportunityBody = zod.object({
+  "deviceId": zod.string()
+})
+
+export const UnsaveOpportunityResponse = zod.unknown()
+
+

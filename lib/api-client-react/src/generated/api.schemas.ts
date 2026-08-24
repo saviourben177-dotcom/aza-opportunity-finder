@@ -120,6 +120,15 @@ export type OpportunityMatch = Opportunity & {
   daysRemaining: number;
 };
 
+export interface DeviceIdentifier {
+  deviceId: string;
+}
+
+export interface SaveOpportunityRequest {
+  deviceId: string;
+  opportunityId: string;
+}
+
 export interface AnalysisResult {
   total: number;
   eligibleCount: number;
@@ -127,4 +136,14 @@ export interface AnalysisResult {
   ineligibleCount: number;
   matches: OpportunityMatch[];
 }
+
+export type DeviceIdQueryParameter = string;
+
+export type GetSavedOpportunitiesParams = {
+deviceId: DeviceIdQueryParameter;
+};
+
+export type GetSavedOpportunities200 = {
+  opportunities: Opportunity[];
+};
 

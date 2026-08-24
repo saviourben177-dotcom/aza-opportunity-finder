@@ -1,10 +1,12 @@
-import { ArrowLeft, Calendar, Check, CircleAlert, Copy, ExternalLink, FileText, Globe2, RefreshCw, Users, X } from 'lucide-react';
+import { ArrowLeft, Bookmark, BookmarkCheck, Calendar, Check, CircleAlert, Copy, ExternalLink, FileText, Globe2, RefreshCw, Users, X } from 'lucide-react';
 import { Link, useParams } from 'wouter';
 import { useEffect, useState } from 'react';
-import { useGetOpportunity, getGetOpportunityQueryKey } from '@workspace/api-client-react';
+import { useGetOpportunity, getGetOpportunityQueryKey, useGetSavedOpportunities, useSaveOpportunity, useUnsaveOpportunity, getGetSavedOpportunitiesQueryKey } from '@workspace/api-client-react';
 import type { OpportunityMatch } from '@workspace/api-client-react';
+import { useQueryClient } from '@tanstack/react-query';
 import DashboardShell from '@/components/dashboard-shell';
 import EligibilityPanel from '@/components/eligibility-panel';
+import { getDeviceId } from '@/lib/device-id';
 
 function DetailSkeleton() {
   return (
@@ -31,6 +33,30 @@ export default function OpportunityDetail() {
   const [showApplication, setShowApplication] = useState(false);
   const [copied, setCopied] = useState(false);
   const [savedMatch, setSavedMatch] = useState<OpportunityMatch | null>(null);
+
+  const deviceId = getDeviceId();
+  const queryClient = useQueryClient();
+  const savedListQueryKey = getGetSavedOpportunitiesQueryKey({ deviceId });
+  const { data: savedList } = useGetSavedOpportunities(
+    { deviceId },
+    { query: { enabled: Boolean(deviceId), queryKey: savedListQueryKey } },
+  );
+  const isSaved = Boolean(savedList?.opportunities.some((item) => item.id === id));
+
+  const saveMutation = useSaveOpportunity({
+    mutation: { onSuccess: () => queryClient.invalidateQueries({ queryKey: savedListQueryKey }) },
+  });
+  const unsaveMutation = useUnsaveOpportunity({
+    mutation: { onSuccess: () => queryClient.invalidateQueries({ queryKey: savedListQueryKey }) },
+  });
+  const toggleSaved = () => {
+    if (isSaved) {
+      unsaveMutation.mutate({ opportunityId: id, data: { deviceId } });
+    } else {
+      saveMutation.mutate({ data: { deviceId, opportunityId: id } });
+    }
+  };
+  const savePending = saveMutation.isPending || unsaveMutation.isPending;
 
   useEffect(() => {
     const saved = sessionStorage.getItem('aza-analysis');
@@ -175,6 +201,21 @@ export default function OpportunityDetail() {
               className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[hsl(var(--primary))] px-4 py-3 text-sm font-bold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
             >
               View eligibility <ExternalLink size={14} />
+            </button>
+            <button
+              type="button"
+              data-testid="button-toggle-saved"
+              onClick={toggleSaved}
+              disabled={savePending}
+              aria-pressed={isSaved}
+              className={`mt-2.5 flex w-full items-center justify-center gap-2 rounded-full border px-4 py-3 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                isSaved
+                  ? 'border-[hsl(var(--primary))] bg-[hsl(var(--accent))]/40 text-[hsl(var(--primary))]'
+                  : 'border-[hsl(var(--border))] text-foreground hover:bg-[hsl(var(--muted))]'
+              }`}
+            >
+              {isSaved ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}
+              {isSaved ? 'Saved' : 'Save for later'}
             </button>
             {match.demoData && (
               <p className="mt-2.5 text-center text-[10px] leading-relaxed text-muted-foreground">
