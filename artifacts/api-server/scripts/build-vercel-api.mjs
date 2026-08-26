@@ -1,6 +1,7 @@
-// Bundles artifacts/api-server/src/app.ts into a single file at api/index.mjs
-// so Vercel's Node.js function builder gets a plain, dependency-free bundle
-// instead of having to resolve pnpm workspace packages itself.
+// Bundles artifacts/api-server/src/app.ts into a single file at api/index.js
+// (with an accompanying api/package.json declaring "type": "module", written
+// below) so Vercel's Node.js function builder gets a plain, dependency-free
+// bundle instead of having to resolve pnpm workspace packages itself.
 //
 // Deliberately bundles app.ts, not index.ts: index.ts calls app.listen()
 // and reads a required PORT env var, both of which are wrong for a
@@ -26,7 +27,7 @@ const outdir = path.join(repoRoot, "api");
 // esbuild-plugin-pino emits its own worker entry files (pino-pretty.mjs
 // etc.) alongside the main bundle, so this needs `outdir` rather than a
 // single `outfile` even though there is only one real entry point.
-const outfile = path.join(outdir, "index.mjs");
+const outfile = path.join(outdir, "index.js");
 
 await esbuild({
   entryPoints: { index: entry },
@@ -34,7 +35,6 @@ await esbuild({
   bundle: true,
   format: "esm",
   outdir,
-  outExtension: { ".js": ".mjs" },
   logLevel: "info",
   // Mirrors artifacts/api-server/build.mjs so both build paths behave the
   // same way for native/unbundleable packages.
@@ -130,3 +130,17 @@ globalThis.__dirname = __bannerPath.dirname(globalThis.__filename);
 });
 
 console.log(`Bundled Vercel API function -> ${path.relative(repoRoot, outfile)}`);
+
+// Vercel's Node.js function builder inspects the nearest package.json to
+// decide module format and to positively identify a directory as containing
+// deployable functions. The generated api/ directory has no package.json of
+// its own (it doesn't exist until this script runs), which left Vercel
+// unable to detect api/index.mjs as a function at all. Writing one here,
+// after the bundle exists, fixes both: explicit "type": "module" for Node,
+// and a package.json Vercel's build step can see when it scans api/.
+const fs = await import("node:fs/promises");
+await fs.writeFile(
+  path.join(outdir, "package.json"),
+  JSON.stringify({ type: "module" }, null, 2) + "\n",
+);
+console.log(`Wrote ${path.relative(repoRoot, path.join(outdir, "package.json"))}`);
