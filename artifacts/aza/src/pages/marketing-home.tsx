@@ -13,10 +13,10 @@ import {
 import { Link } from 'wouter';
 
 const stats = [
-  { icon: Briefcase, value: '25,000+', label: 'Opportunities and counting' },
-  { icon: Target, value: '100+', label: 'Countries covered' },
-  { icon: UserPlus, value: '10K+', label: 'Students already growing with Aza' },
-  { icon: Trophy, value: '500+', label: 'Success stories and counting' },
+  { icon: Briefcase, value: 'Growing', label: 'Verified opportunities added weekly' },
+  { icon: Target, value: 'Multi-country', label: 'Eligibility coverage' },
+  { icon: UserPlus, value: 'New', label: 'Built for HackSocial 2026' },
+  { icon: Trophy, value: 'Real sources', label: 'No fabricated listings' },
 ];
 
 const steps = [
@@ -73,21 +73,13 @@ export default function MarketingHome() {
               </Link>
             </div>
             <div className="mt-8 flex items-center gap-3">
-              <div className="flex -space-x-2">
-                {[0, 1, 2, 3, 4].map((i) => (
-                  <span
-                    key={i}
-                    className="h-8 w-8 rounded-full border-2 border-white bg-[hsl(var(--muted))]"
-                  />
-                ))}
-              </div>
               <span className="flex h-6 items-center rounded-full bg-[hsl(var(--accent))] px-2.5 text-[11px] font-bold text-[hsl(var(--accent-foreground))]">
-                10K+
+                HackSocial 2026
               </span>
               <p className="text-xs text-muted-foreground">
-                Trusted by students in
+                Built for students across
                 <br />
-                <span className="font-semibold text-foreground">100+ countries</span>
+                <span className="font-semibold text-foreground">Nigeria and beyond</span>
               </p>
             </div>
           </div>
@@ -95,9 +87,11 @@ export default function MarketingHome() {
           <div className="relative">
             <div className="absolute -inset-6 -z-10 rounded-[2.5rem] bg-[hsl(var(--accent))]" />
             <div className="relative flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-[1.75rem] bg-[hsl(var(--muted))]">
-              <p className="max-w-[220px] text-center text-xs font-semibold text-muted-foreground/70">
-                Hero photo placeholder &mdash; no licensed image sourced yet
-              </p>
+              <img
+                src="/hero-student.jpg"
+                alt="Student walking with a laptop, representing an Aza user pursuing opportunities"
+                className="h-full w-full object-cover"
+              />
             </div>
             <div className="absolute -right-4 top-6 w-48 rounded-2xl border border-[hsl(var(--border))] bg-white p-3.5 shadow-lg">
               <div className="flex items-start gap-2.5">
@@ -238,8 +232,7 @@ export default function MarketingHome() {
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 text-xs text-white/70 sm:flex-row">
           <p className="flex items-center gap-1.5">
             <Sparkles size={13} className="text-[hsl(var(--primary))]" />
-            Aza helped me find a scholarship I didn&apos;t even know existed.{' '}
-            <span className="text-white/50">&mdash; Praise, Nigeria</span>
+            Built by students, for students &mdash; verified opportunities only.
           </p>
           <div className="flex flex-wrap items-center gap-4">
             <span>Real opportunities</span>

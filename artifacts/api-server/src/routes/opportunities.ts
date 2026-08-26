@@ -4,6 +4,8 @@ import { db, opportunitiesTable, savedOpportunitiesTable } from "@workspace/db";
 import {
   AnalyzeOpportunitiesBody,
   AnalyzeOpportunitiesResponse,
+  AiMatchBody,
+  AiMatchResponse,
   GetOpportunityParams,
   GetSavedOpportunitiesQueryParams,
   SaveOpportunityBody,
@@ -319,6 +321,160 @@ router.post("/opportunities/analyze", async (req, res) => {
 
   const validated = AnalyzeOpportunitiesResponse.parse(result);
   req.log.info({ profileCountry: parsed.data.country, resultCount: matches.length }, "Aza opportunity analysis completed");
+  res.json(validated);
+});
+
+// AI Match reuses the exact same deterministic scoring as /opportunities/analyze
+// above — it does not let the model invent opportunities or eligibility. The
+// LLM's only job is to turn the top already-scored, already-real matches into
+// a short, personalized narrative. If GROQ_API_KEY is missing or the Groq
+// call fails, this returns 503 rather than silently falling back to fake
+// text, so a broken key is loud in the logs and in the response, not hidden.
+const GROQ_MODEL = "llama-3.3-70b-versatile";
+const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
+
+router.post("/opportunities/ai-match", async (req, res) => {
+  const parsed = AiMatchBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Please complete the profile with valid values." });
+    return;
+  }
+
+  const apiKey = process.env["GROQ_API_KEY"];
+  if (!apiKey) {
+    req.log.error("AI Match called but GROQ_API_KEY is not set");
+    res.status(503).json({ error: "AI Match is not configured yet." });
+    return;
+  }
+
+  const allOpportunities = await getAllOpportunities();
+  const scored = allOpportunities
+    .map((opportunity) => analyze(opportunity, parsed.data))
+    .filter((match) => match.eligibility !== "ineligible")
+    .sort((a, b) => b.score - a.score || a.daysRemaining - b.daysRemaining)
+    .slice(0, 8);
+
+  if (scored.length === 0) {
+    res.json({
+      summary: "No eligible or potential opportunities matched this profile yet. Try widening your interests or preferred types.",
+      highlights: [],
+      generatedAt: new Date().toISOString(),
+    });
+    return;
+  }
+
+  // Only the fields the model needs to reason about are sent — never the
+  // full opportunity object — to keep the prompt small and to make it
+  // structurally impossible for the model to echo back a field (like a
+  // fabricated applicationUrl) that wasn't given to it.
+  const candidateSummaries = scored.map((match) => ({
+    id: match.id,
+    title: match.title,
+    organization: match.organization,
+    category: match.category,
+    eligibility: match.eligibility,
+    score: match.score,
+    eligibleReasons: match.eligibleReasons,
+    concernReasons: match.concernReasons,
+    daysRemaining: match.daysRemaining,
+  }));
+
+  const systemPrompt =
+    "You are Aza's opportunity-matching assistant. You will be given a student's profile and a fixed list of already-verified, already-scored opportunities. " +
+    "Write a short, warm, specific explanation of why the top matches fit this person. " +
+    "Rules: only reference opportunities from the provided list by their exact id and title. Never invent an opportunity, organization, deadline, or URL that isn't in the list. " +
+    "Never state or imply a numeric probability of acceptance. " +
+    "Respond ONLY with JSON matching this exact shape, no markdown, no preamble: " +
+    '{"summary": string, "highlights": [{"opportunityId": string, "title": string, "whyItFits": string}]}. ' +
+    "Include at most 5 highlights, ordered best-fit first.";
+
+  const userPrompt = JSON.stringify({
+    profile: {
+      country: parsed.data.country,
+      status: parsed.data.status,
+      education: parsed.data.education,
+      interests: parsed.data.interests,
+      skills: parsed.data.skills,
+      goals: parsed.data.goals,
+      preferredTypes: parsed.data.preferredTypes,
+    },
+    candidates: candidateSummaries,
+  });
+
+  let groqResponse: Response;
+  try {
+    groqResponse = await fetch(GROQ_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: GROQ_MODEL,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        temperature: 0.4,
+        max_tokens: 900,
+        response_format: { type: "json_object" },
+      }),
+    });
+  } catch (err) {
+    req.log.error({ err }, "AI Match: Groq request failed to send");
+    res.status(503).json({ error: "AI Match is temporarily unavailable. Please try again shortly." });
+    return;
+  }
+
+  if (!groqResponse.ok) {
+    const errorBody = await groqResponse.text().catch(() => "");
+    req.log.error({ status: groqResponse.status, errorBody }, "AI Match: Groq returned an error");
+    res.status(503).json({ error: "AI Match is temporarily unavailable. Please try again shortly." });
+    return;
+  }
+
+  const groqJson = await groqResponse.json();
+  const rawContent: string | undefined = groqJson?.choices?.[0]?.message?.content;
+  if (!rawContent) {
+    req.log.error({ groqJson }, "AI Match: Groq response had no content");
+    res.status(503).json({ error: "AI Match is temporarily unavailable. Please try again shortly." });
+    return;
+  }
+
+  let modelOutput: { summary?: string; highlights?: { opportunityId?: string; title?: string; whyItFits?: string }[] };
+  try {
+    modelOutput = JSON.parse(rawContent);
+  } catch (err) {
+    req.log.error({ err, rawContent }, "AI Match: Groq response was not valid JSON");
+    res.status(503).json({ error: "AI Match is temporarily unavailable. Please try again shortly." });
+    return;
+  }
+
+  // Never trust the model's echoed ids/titles at face value: only keep
+  // highlights that reference an opportunity actually in the scored,
+  // real candidate list, and always use Aza's own title for it, not
+  // whatever the model wrote.
+  const scoredById = new Map(scored.map((match) => [match.id, match]));
+  const safeHighlights = (modelOutput.highlights ?? [])
+    .filter((highlight) => highlight.opportunityId && scoredById.has(highlight.opportunityId))
+    .slice(0, 5)
+    .map((highlight) => {
+      const real = scoredById.get(highlight.opportunityId as string)!;
+      return {
+        opportunityId: real.id,
+        title: real.title,
+        whyItFits: (highlight.whyItFits ?? "").trim() || `Matches your profile with a score of ${real.score}/100.`,
+      };
+    });
+
+  const result = {
+    summary: (modelOutput.summary ?? "").trim() || "Here are the opportunities that best match your profile.",
+    highlights: safeHighlights,
+    generatedAt: new Date().toISOString(),
+  };
+
+  const validated = AiMatchResponse.parse(result);
+  req.log.info({ profileCountry: parsed.data.country, highlightCount: safeHighlights.length }, "Aza AI Match completed");
   res.json(validated);
 });
 

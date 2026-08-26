@@ -47,6 +47,29 @@ paths:
                 $ref: "#/components/schemas/AnalysisResult"
         "400":
           description: Invalid profile
+  /opportunities/ai-match:
+    post:
+      operationId: aiMatchOpportunities
+      tags: [opportunities]
+      summary: AI-narrated opportunity shortlist for a profile
+      description: Runs the same deterministic eligibility scoring as /opportunities/analyze, then asks an LLM (Groq/Llama) to write a short, personalized explanation of the top real matches. Never invents opportunities outside the scored set.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileInput"
+      responses:
+        "200":
+          description: AI-narrated shortlist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiMatchResult"
+        "400":
+          description: Invalid profile
+        "503":
+          description: AI Match is not configured (missing Groq API key) or the upstream call failed
   /opportunities/{id}:
     get:
       operationId: getOpportunity
@@ -245,4 +268,21 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/OpportunityMatch"
+    AiMatchHighlight:
+      type: object
+      required: [opportunityId, title, whyItFits]
+      properties:
+        opportunityId: { type: string }
+        title: { type: string }
+        whyItFits: { type: string }
+    AiMatchResult:
+      type: object
+      required: [summary, highlights, generatedAt]
+      properties:
+        summary: { type: string }
+        highlights:
+          type: array
+          items:
+            $ref: "#/components/schemas/AiMatchHighlight"
+        generatedAt: { type: string, format: date-time }
 

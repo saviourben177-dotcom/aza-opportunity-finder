@@ -20,6 +20,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AiMatchResult,
   AnalysisResult,
   DeviceIdentifier,
   GetSavedOpportunities200,
@@ -205,6 +206,78 @@ export const useAnalyzeOpportunities = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getAnalyzeOpportunitiesMutationOptions(options));
+    }
+
+export const getAiMatchOpportunitiesUrl = () => {
+
+
+
+
+  return `/api/opportunities/ai-match`
+}
+
+/**
+ * Runs the same deterministic eligibility scoring as /opportunities/analyze, then asks an LLM (Groq/Llama) to write a short, personalized explanation of the top real matches. Never invents opportunities outside the scored set.
+ * @summary AI-narrated opportunity shortlist for a profile
+ */
+export const aiMatchOpportunities = async (profileInput: ProfileInput, options?: Parameters<typeof customFetch>[1]): Promise<AiMatchResult> => {
+
+  return customFetch<AiMatchResult>(getAiMatchOpportunitiesUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(profileInput)
+  }
+);}
+
+
+
+
+
+export const getAiMatchOpportunitiesMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof aiMatchOpportunities>>, TError,{data: BodyType<ProfileInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof aiMatchOpportunities>>, TError,{data: BodyType<ProfileInput>}, TContext> => {
+
+const mutationKey = ['aiMatchOpportunities'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof aiMatchOpportunities>>, {data: BodyType<ProfileInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  aiMatchOpportunities(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AiMatchOpportunitiesMutationResult = NonNullable<Awaited<ReturnType<typeof aiMatchOpportunities>>>
+    export type AiMatchOpportunitiesMutationBody = BodyType<ProfileInput>
+    export type AiMatchOpportunitiesMutationError = ErrorType<void>
+
+    /**
+ * @summary AI-narrated opportunity shortlist for a profile
+ */
+export const useAiMatchOpportunities = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof aiMatchOpportunities>>, TError,{data: BodyType<ProfileInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof aiMatchOpportunities>>,
+        TError,
+        {data: BodyType<ProfileInput>},
+        TContext
+      > => {
+      return useMutation(getAiMatchOpportunitiesMutationOptions(options));
     }
 
 export const getGetOpportunityUrl = (id: string,) => {

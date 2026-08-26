@@ -96,6 +96,23 @@ export const AnalyzeOpportunitiesResponse = zod.object({
 
 
 /**
+ * Runs the same deterministic eligibility scoring as /opportunities/analyze, then asks an LLM (Groq/Llama) to write a short, personalized explanation of the top real matches. Never invents opportunities outside the scored set.
+ * @summary AI-narrated opportunity shortlist for a profile
+ */
+export const AiMatchBody = AnalyzeOpportunitiesBody;
+
+export const AiMatchResponse = zod.object({
+  "summary": zod.string(),
+  "highlights": zod.array(zod.object({
+  "opportunityId": zod.string(),
+  "title": zod.string(),
+  "whyItFits": zod.string()
+})),
+  "generatedAt": zod.coerce.date()
+})
+
+
+/**
  * @summary Get an opportunity with eligibility reasoning
  */
 export const GetOpportunityParams = zod.object({

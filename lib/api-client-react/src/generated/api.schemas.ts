@@ -137,6 +137,18 @@ export interface AnalysisResult {
   matches: OpportunityMatch[];
 }
 
+export interface AiMatchHighlight {
+  opportunityId: string;
+  title: string;
+  whyItFits: string;
+}
+
+export interface AiMatchResult {
+  summary: string;
+  highlights: AiMatchHighlight[];
+  generatedAt: string;
+}
+
 export type DeviceIdQueryParameter = string;
 
 export type GetSavedOpportunitiesParams = {
