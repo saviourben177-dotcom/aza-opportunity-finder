@@ -45,10 +45,23 @@ function rssField(block: string, tag: string): string {
 
 async function safeFetch(url: string, init?: RequestInit): Promise<Response | null> {
   try {
-    const res = await fetch(url, init);
-    if (!res.ok) return null;
+    const res = await fetch(url, {
+      ...init,
+      headers: {
+        // Some sources (WordPress sites especially) reject requests with
+        // no or generic User-Agent headers. Identify honestly rather than
+        // spoofing a browser.
+        "User-Agent": "AzaOpportunityFinder/1.0 (+https://a-za.vercel.app)",
+        ...(init?.headers ?? {}),
+      },
+    });
+    if (!res.ok) {
+      console.error(`[ingest] fetch failed: ${url} -> HTTP ${res.status} ${res.statusText}`);
+      return null;
+    }
     return res;
-  } catch {
+  } catch (err) {
+    console.error(`[ingest] fetch threw: ${url} ->`, err instanceof Error ? err.message : err);
     return null;
   }
 }
