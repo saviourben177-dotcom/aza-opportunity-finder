@@ -106,7 +106,12 @@ async function getOpportunityById(id: string): Promise<Opportunity | undefined> 
 }
 
 
-const normalise = (value: string) => value.trim().toLowerCase();
+// Guards against malformed data from ingestion sources (e.g. a source API
+// nesting an array where a plain string was expected). Without this, one
+// bad opportunity record throws inside analyze() and 500s the whole
+// /opportunities/analyze response for every user, not just that record.
+const normalise = (value: unknown): string =>
+  Array.isArray(value) ? value.map(normalise).join(" ") : String(value ?? "").trim().toLowerCase();
 // Deliberately not clamped to 0: the frontend relies on a negative value to
 // know a deadline has passed (shows "Closed" and disables the apply button).
 // Clamping here would make every closed opportunity read as "Closes today"
