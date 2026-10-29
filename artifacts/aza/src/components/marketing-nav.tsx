@@ -31,7 +31,7 @@ export default function MarketingNav() {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-10">
         <Link href="/" data-testid="link-logo" className="flex items-center gap-2">
           <AzaMark />
-          <span className="text-lg font-extrabold text-white">Aza</span>
+          <span className="text-lg font-extrabold text-white">Aza Intelligence</span>
         </Link>
         <nav className="hidden items-center gap-7 md:flex">
           {links.map((l) => {
